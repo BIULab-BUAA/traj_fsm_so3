@@ -6,11 +6,13 @@
 #include <sensor_msgs/Imu.h>
 #include <quadrotor_msgs/TakeoffLand.h>
 #include <quadrotor_msgs/PositionCommand.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <mavros_msgs/RCIn.h>
 #include <mavros_msgs/State.h>
 #include <mavros_msgs/ExtendedState.h>
 #include <sensor_msgs/BatteryState.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Bool.h>
 #include <uav_utils/utils.h>
 #include "PX4CtrlParam.h"
 
@@ -75,6 +77,39 @@ public:
     void feed(nav_msgs::OdometryConstPtr pMsg);
 };
 
+class Start_Trigger_Data_t
+{
+public:
+  bool recv_start_trig;
+
+  Start_Trigger_Data_t();
+  void feed(geometry_msgs::PoseStampedConstPtr pMsg);
+};
+
+class Cmd_Trigger_Data_t
+{
+public:
+  bool recv_cmd_trig;
+
+  Cmd_Trigger_Data_t();
+  void feed(geometry_msgs::PoseStampedConstPtr pMsg);
+};
+
+class Emergency_Landing_t
+{
+private:
+    /* data */
+public:
+    std_msgs::Bool msg;
+
+    ros::Time rcv_stamp;
+    bool flag_emergency_landing;
+
+    Emergency_Landing_t(/* args */);
+    ~Emergency_Landing_t(){};
+    void feed(std_msgs::BoolConstPtr pMsg);
+};
+
 class Imu_Data_t
 {
 private:
@@ -100,6 +135,7 @@ public:
     bool trigger_;
     bool land_trigger_;
     bool start_mission_;
+    bool emengercy_trigger_;
     int image_yaw_state_;
 
     std_msgs::String msg;

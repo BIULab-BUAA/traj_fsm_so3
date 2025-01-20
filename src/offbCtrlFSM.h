@@ -33,6 +33,7 @@ public:
     RC_Data_t rc_data_;
     State_Data_t state_data_;
     ExtendedState_Data_t extended_state_data_;
+    Emergency_Landing_t emergency_landing_;
 
     Odom_Data_t odom_data_;
     Imu_Data_t imu_data_;
@@ -55,12 +56,15 @@ public:
     ros::Time last_set_hover_pose_time_;
 
     enum State_t{
-        INIT = 1,
+        INIT,
         AUTO_HOVER,
         CMD_CTRL,
         AUTO_TAKEOFF,
-        AUTO_LAND
+        AUTO_LAND,
+        EMERGENCY_STOP
     };
+
+    
 
     OffbCtrlFSM(Parameter_t &, LinearControl &);
     // ~PX4CtrlFSM();
@@ -75,9 +79,14 @@ public:
     State_t get_state(){return state_;}
     bool get_landed(){return takeoff_land_.landed;}
 
+
+
 private:
     State_t state_; // only be changed in process funciton
     AutoTakeoffLand_t takeoff_land_;
+
+    State_t exec_state_;
+    int continously_called_times_{0};
 
     // -- control related
     Desired_State_t get_hover_des();
@@ -102,7 +111,10 @@ private:
     void publish_attitude_ctrl(const Controller_Output_t &u, const ros::Time &stamp);
     void publish_trigger(const nav_msgs::Odometry &odom_msg);
 
-};
+    void changeFSMExecState(OffbCtrlFSM::State_t new_state, std::string pos_call);
+    std::pair<int, OffbCtrlFSM::State_t > timesOfConsecutiveStateCalls();
+    void printFSMExecState();
 
+};
 
 #endif

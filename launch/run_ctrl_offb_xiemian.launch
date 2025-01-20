@@ -5,9 +5,9 @@
 			
 			<remap from="~odom" to="/mavros/local_position/odom" />
 
-		<remap from="~cmd" to="/drone0/planning/pos_cmd" />
+		<remap from="~cmd" to="/position_cmd" />
 
-        <rosparam command="load" file="$(find my_px4ctrl)/config/ctrl_param_fpv.yaml" />
+        <rosparam command="load" file="$(find my_px4ctrl)/config/ctrl_param_fpv_xiemian.yaml" />
 	</node>
 	<node pkg="my_px4ctrl" type="keyboard.py" name="keyboard"  />
  

@@ -19,6 +19,8 @@ RC_Data_t::RC_Data_t()
     }
 }
 
+
+
 void RC_Data_t::feed(mavros_msgs::RCInConstPtr pMsg)
 {
     msg = *pMsg;
@@ -178,6 +180,27 @@ Imu_Data_t::Imu_Data_t()
     rcv_stamp = ros::Time(0);
 }
 
+
+Start_Trigger_Data_t::Start_Trigger_Data_t()
+{
+    recv_start_trig = false;
+};
+
+void Start_Trigger_Data_t::feed(geometry_msgs::PoseStampedConstPtr pMsg)
+{
+    recv_start_trig = true;
+}
+
+Cmd_Trigger_Data_t::Cmd_Trigger_Data_t()
+{
+    recv_cmd_trig = false;
+};
+
+void Cmd_Trigger_Data_t::feed(geometry_msgs::PoseStampedConstPtr pMsg)
+{
+    recv_cmd_trig = true;
+}
+
 /**
  * @brief feed imu data into class member
  * 
@@ -327,6 +350,8 @@ void Takeoff_Land_Data_t::feed(quadrotor_msgs::TakeoffLandConstPtr pMsg)
 Keyboard_t::Keyboard_t()
 {
     rcv_stamp = ros::Time(0.0);
+    emengercy_trigger_ = false;
+    trigger_ = false;
 }
 
 void Keyboard_t::feed(std_msgs::StringConstPtr str)
@@ -339,6 +364,7 @@ void Keyboard_t::feed(std_msgs::StringConstPtr str)
     else if(str->data == "g" || str->data == "G")
     {
         trigger_ = false;
+        emengercy_trigger_ = true;
     }
     else if(str->data == "a" || str->data == "A")
     {// take off
@@ -357,4 +383,16 @@ void Keyboard_t::feed(std_msgs::StringConstPtr str)
         image_yaw_state_ = 0;
     }
     std::cout<<"str.data : "<< str->data <<std::endl;
+}
+
+Emergency_Landing_t::Emergency_Landing_t()
+{
+    flag_emergency_landing = false;
+    rcv_stamp = ros::Time(0);
+}
+
+void Emergency_Landing_t::feed(std_msgs::BoolConstPtr pMsg)
+{
+    rcv_stamp = ros::Time::now();
+    flag_emergency_landing = pMsg->data;
 }

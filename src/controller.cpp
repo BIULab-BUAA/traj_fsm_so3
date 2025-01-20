@@ -39,7 +39,16 @@ LinearControl::calculateControl(const Desired_State_t &des,
       double sin = std::sin(yaw_odom);
       double cos = std::cos(yaw_odom);
       roll = (des_acc(0) * sin - des_acc(1) * cos )/ param_.gra;
+      
       pitch = (des_acc(0) * cos + des_acc(1) * sin )/ param_.gra;
+
+      double sign_roll = sign(roll);
+      double sign_pitch = sign(pitch);
+
+      roll = sign_roll*std::min(fabs(roll),param_.max_angle);
+      
+      pitch = sign_pitch*std::min(fabs(pitch),param_.max_angle);
+
       // yaw = fromQuaternion2yaw(des.q);
       yaw_imu = fromQuaternion2yaw(imu.q);
       // Eigen::Quaterniond q = Eigen::AngleAxisd(yaw,Eigen::Vector3d::UnitZ())

@@ -1,8 +1,8 @@
 /*
  * @Author: xindong324
  * @Date: 2022-07-02 22:34:00
- * @LastEditors: xindong324
- * @LastEditTime: 2022-09-23 17:18:18
+ * @LastEditors: xindong324 xindong324@163.com
+ * @LastEditTime: 2024-01-18 05:25:28
  * @Description: file content
  */
 /*************************************************************/
@@ -84,6 +84,12 @@ private:
 
   double computeDesiredCollectiveThrustSignal(const Eigen::Vector3d &des_acc);
   double fromQuaternion2yaw(Eigen::Quaterniond q);
+  inline double sign(double x){
+	if(x > 0) return 1.0;
+	if(x < 0) return -1.0;
+	if (x==0) return 0;
+	
+  }
 };
 
 

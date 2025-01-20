@@ -8,6 +8,8 @@ OffbCtrlFSM::OffbCtrlFSM(Parameter_t &param, LinearControl &controller): param_(
 {
     state_ = INIT;
     hover_pose_.setZero();
+    keyboard_data_.trigger_ = false;
+    keyboard_data_.land_trigger_ = false;
 }
 
 // the rc should be switch to auto hover  then can switch to hover mode.
@@ -47,41 +49,28 @@ void OffbCtrlFSM::process()
     Desired_State_t des(odom_data_);
     bool rotor_low_speed_during_land = false;
 
+    if(keyboard_data_.emengercy_trigger_|| emergency_landing_.flag_emergency_landing) 
+        state_ = EMERGENCY_STOP;
+    ////////////////////////////// print state
+    static  int fsm_num = 0;
+    fsm_num++;
+    if(fsm_num == 50)
+    {
+        printFSMExecState();
+
+        fsm_num = 0;
+    }
+    ////////////////////////////////////////////////////////////
     // STEP1: state machine runs
     switch (state_)
     {
     case INIT:
-    {    /* code */
-        /********************** check state change **************************/
-        // try to change auto_hover mode
-        // if(keyboard_data_.trigger_)
-        // {
-        //     // judge unsatisfied condition
-        //     if(!odom_is_received(now_time))
-        //     {
-        //         ROS_ERROR("[px4ctrl_fsm] Reject AUTO_HOVER(L2). No odom!");
-        //         break;
-        //     }
-        //     if(cmd_is_received(now_time))
-        //     {
-        //         ROS_ERROR("[px4ctrl] Reject AUTO_HOVER(L2). You are sending commands before toggling into Auto_Hover.");
-        //         break;
-        //     }
-        //     if(odom_data_.v.norm() > 3.0)
-        //     {
-        //         ROS_ERROR("[px4ctrl] Reject AUTO_HOVER(L2). Odom_Vel=%fm/s, which seems that the locolization module goes wrong!", odom_data_.v.norm());
-        //         break;
-        //     }
+    {    
+        if(!keyboard_data_.trigger_)
+            break;
 
-        //     // all satisfied, change to AUTO_HOVER
-        //     state_ = AUTO_HOVER;    // change state machine flag
-        //     controller_.resetThrustMapping();   // reset hover thrust
-        //     set_hov_with_odom();    //set current pose as hover pose
-        //     toggle_offboard_mode(true);     // try to change into offboard;
-        //     ROS_INFO("\033[32m[px4ctrl] MANUAL_CTRL(L1) --> AUTO_HOVER(L2)\033[32m");
-        // }
         controller_.resetThrustMapping();
-        if(param_.takeoff_land.enable && keyboard_data_.trigger_)
+        if(param_.takeoff_land.enable )
         {// if takeoff command triggered // Try to jump to AUTO_TAKEOFF
             if(!odom_is_received(now_time))
             {
@@ -103,24 +92,7 @@ void OffbCtrlFSM::process()
                 ROS_ERROR("[px4ctrl] Reject AUTO_TAKEOFF. land detector says that the drone is not landed now.");
                 break;
             }
-            // if(rc_is_received(now_time))    // check only if rc connected
-            // {
-            //     if(!rc_data_.is_hover_mode || !rc_data_.is_command_mode || !rc_data_.check_centered())
-            //     {
-            //         ROS_ERROR("[px4ctrl] Reject auto_takeoff. if you have your rc connected, keep its switch at \"auto_hover\" and \"command_control\" and keep all sticks in center, and take off again. ");
-            //         while(ros::ok())
-            //         {
-            //             ros::Duration(0.01).sleep();
-            //             ros::spinOnce();
-            //             if(rc_data_.is_hover_mode && rc_data_.is_command_mode && rc_data_.check_centered())
-            //             {
-            //                 ROS_INFO("\033[32m[px4ctrl] OK, you can takeoff again.\033[32m");
-            //                 break;
-            //             }
-            //         }
-            //         break;
-            //     }
-            // }
+            
 
             // change to auto takeoff
             state_ = AUTO_TAKEOFF;
@@ -264,6 +236,14 @@ void OffbCtrlFSM::process()
                 } 
             }
         }
+        break;
+    }
+    
+    case EMERGENCY_STOP:
+    {
+        u.thrust = 0;
+        emergency_landing_.flag_emergency_landing = true;
+        break;
     }
     
     default:
@@ -277,13 +257,12 @@ void OffbCtrlFSM::process()
     {
         controller_.estimateThrustModel(imu_data_.a, param_);
     }
-
+    
     // step3: solve and update control commands
     if(rotor_low_speed_during_land) // used at start of auto takeoff
     {
         motors_idling(imu_data_, u);
     }
-
     else{
         debug_msg_ = controller_.calculateControl(des, odom_data_, imu_data_, u);
         // cout << "thrust" << u.thrust << endl;
@@ -291,6 +270,13 @@ void OffbCtrlFSM::process()
         debug_pub_.publish(debug_msg_);
     }
 
+    // STEP 2.5: check emergency
+    if(state_ == EMERGENCY_STOP || state_ == INIT || emergency_landing_.flag_emergency_landing)
+    {
+        //u.q = Eigen::Quaterniond();
+        u.thrust = 0;
+        debug_msg_.des_thr = 0;
+    }
     // step4: publish control commands to mavros
     if(param_.use_bodyrate_ctrl)
     {
@@ -307,6 +293,8 @@ void OffbCtrlFSM::process()
     rc_data_.enter_hover_mode = false;
     rc_data_.enter_command_mode = false;
     takeoff_land_data_.triggered = false;
+
+
 }
 
 void OffbCtrlFSM::motors_idling(const Imu_Data_t &imu, Controller_Output_t &u)
@@ -620,4 +608,10 @@ void OffbCtrlFSM::reboot_FCU()
 
 	// if (param.print_dbg)
 	// 	printf("reboot result=%d(uint8_t), success=%d(uint8_t)\n", reboot_srv.response.result, reboot_srv.response.success);
+}
+
+
+void OffbCtrlFSM::printFSMExecState() {
+    static string state_str[6] = {"INIT", "AUTO_HOVER", "CMD_CTRL","AUTO_TAKEOFF", "AUTO_LAND","EMERGENCY_STOP"};
+     cout << "[FSM]: state: " << state_str[int(state_)] << endl;
 }

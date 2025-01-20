@@ -53,6 +53,8 @@ int main(int argc, char *argv[])
                                        boost::bind(&Imu_Data_t::feed, &fsm.imu_data_, _1),
                                        ros::VoidConstPtr(),
                                        ros::TransportHints().tcpNoDelay());
+    ros::Subscriber emergency_sub = 
+        nh.subscribe<std_msgs::Bool>("/emergency_landing",10, boost::bind(&Emergency_Landing_t::feed, &fsm.emergency_landing_, _1));
 
     ros::Subscriber rc_sub;
     if (!param.takeoff_land.no_RC) // mavros will still publish wrong rc messages although no RC is connected
